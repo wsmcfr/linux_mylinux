@@ -12,7 +12,7 @@
 #include "stm32mp157-m4-srm.dtsi"
 #include "stm32mp157-m4-srm-pinctrl.dtsi"
 #include "stm32mp157d-atk.dtsi"
-
+#include <dt-bindings/input/input.h>
 / {
 	model = "STMicroelectronics STM32MP157D eval daughter";
 	compatible = "st,stm32mp157d-ed1", "st,stm32mp157";
@@ -76,12 +76,38 @@
 		status = "okay";
 	};
 
-	key_gpio {
-		compatible = "atk,key-gpio";
-		key-gpios = <&gpiog 3 GPIO_ACTIVE_LOW>;
-		interrupt-parent = <&gpiog>;
-		interrupts = <3 IRQ_TYPE_EDGE_BOTH>;
+	/*
+	 * 使用 Linux 内核通用 gpio-keys 驱动注册三路按键。
+	 * KEY0/KEY1 为低电平有效，WK_UP 为高电平有效并作为唤醒源。
+	 */
+	gpio_keys: gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&key_pins_a>;
+		autorepeat;
 		status = "okay";
+
+		key0 {
+			label = "GPIO Key L";
+			linux,code = <KEY_L>;
+			gpios = <&gpiog 3 GPIO_ACTIVE_LOW>;
+			debounce-interval = <15>;
+		};
+
+		key1 {
+			label = "GPIO Key S";
+			linux,code = <KEY_S>;
+			gpios = <&gpioh 7 GPIO_ACTIVE_LOW>;
+			debounce-interval = <15>;
+		};
+
+		wkup {
+			label = "GPIO Key Enter";
+			linux,code = <KEY_ENTER>;
+			gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
+			debounce-interval = <15>;
+			wakeup-source;
+		};
 	};
 };
 

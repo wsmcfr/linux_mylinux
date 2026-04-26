@@ -1364,6 +1364,24 @@
 			slew-rate = <0>;
 		};
 	};
+	/*
+	 * 按键 pinctrl 配置：KEY0/KEY1 使用上拉，WK_UP 使用下拉。
+	 * 这里只描述 GPIO 输入偏置，具体按键码由板级 gpio-keys 节点描述。
+	 */
+	key_pins_a: key_pins-0 {
+		pins1 {
+			pinmux = <STM32_PINMUX('G', 3, GPIO)>, /* KEY0 */
+				 <STM32_PINMUX('H', 7, GPIO)>; /* KEY1 */
+			bias-pull-up;
+			slew-rate = <0>;
+		};
+
+		pins2 {
+			pinmux = <STM32_PINMUX('A', 0, GPIO)>; /* WK_UP */
+			bias-pull-down;
+			slew-rate = <0>;
+		};
+	};
 };
 
 &pinctrl_z {
