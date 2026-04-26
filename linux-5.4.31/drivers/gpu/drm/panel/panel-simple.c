@@ -3108,6 +3108,29 @@ static const struct panel_desc arm_rtsm = {
 	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
 };
 
+/*
+ * 正点原子 ATK7016 RGB LCD 面板参数。
+ * 该面板为 1024x600 分辨率，使用 RGB888 并行总线输出。
+ */
+static const struct drm_display_mode ATK7016_mode = {
+	.clock = 51200, /* LCD 像素时钟，单位 KHz。 */
+	.hdisplay = 1024, /* LCD X 轴有效像素个数。 */
+	.hsync_start = 1024 + 140, /* LCD X 轴加后肩 HBP 后的像素位置。 */
+	.hsync_end = 1024 + 140 + 20, /* LCD X 轴加 HBP 和同步脉宽 HSPW 后的位置。 */
+	.htotal = 1024 + 140 + 20 + 160, /* LCD X 轴一行总周期：有效像素 + HBP + HSPW + HFP。 */
+	.vdisplay = 600, /* LCD Y 轴有效像素个数。 */
+	.vsync_start = 600 + 20, /* LCD Y 轴加后肩 VBP 后的行位置。 */
+	.vsync_end = 600 + 20 + 3, /* LCD Y 轴加 VBP 和同步脉宽 VSPW 后的位置。 */
+	.vtotal = 600 + 20 + 3 + 12, /* LCD Y 轴一帧总周期：有效行 + VBP + VSPW + VFP。 */
+	.vrefresh = 60, /* LCD 刷新频率为 60Hz。 */
+};
+
+static const struct panel_desc alientek_desc = {
+	.modes = &ATK7016_mode,
+	.num_modes = 1,
+	.bus_format = MEDIA_BUS_FMT_RGB888_1X24,
+};
+
 static const struct of_device_id platform_of_match[] = {
 	{
 		.compatible = "ampire,am-480272h3tmqw-t01h",
@@ -3436,6 +3459,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "winstar,wf35ltiacd",
 		.data = &winstar_wf35ltiacd,
+	}, {
+		.compatible = "alientek,lcd-rgb",
+		.data = &alientek_desc,
 	}, {
 		/* sentinel */
 	}
