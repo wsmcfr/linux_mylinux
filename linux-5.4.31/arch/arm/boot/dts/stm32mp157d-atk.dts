@@ -23,6 +23,7 @@
 
 	aliases {
 		serial0 = &uart4;
+		serial2 = &usart3;
 	};
 
 	reserved-memory {
@@ -176,4 +177,13 @@
 		#pwm-cells = <2>;
 		status = "okay";
 	};
+};
+&rtc {
+	status = "okay";
+};
+
+&usart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&usart3_pins_c>;
+	status = "okay";
 };

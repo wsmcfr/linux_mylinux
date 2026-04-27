@@ -1376,6 +1376,19 @@
 			slew-rate = <0>;
 		};
 	};
+
+	usart3_pins_c: usart3-2 {
+		pins1 {
+			pinmux = <STM32_PINMUX('D', 8, AF7)>; /* USART3_TX */
+			bias-disable;
+			drive-push-pull;
+			slew-rate = <0>;
+		};
+		pins2 {
+			pinmux = <STM32_PINMUX('D', 9, AF7)>; /* USART3_RX */
+			bias-disable;
+		};
+	};
 };
 
 &pinctrl_z {
