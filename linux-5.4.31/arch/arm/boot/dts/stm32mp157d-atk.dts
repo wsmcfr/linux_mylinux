@@ -187,3 +187,19 @@
 	pinctrl-0 = <&usart3_pins_c>;
 	status = "okay";
 };
+
+&i2c2 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&i2c2_pins_a>;
+	pinctrl-1 = <&i2c2_pins_sleep_a>;
+	status = "okay";
+
+	ft5426: ft5426@38 {
+		compatible = "edt,edt-ft5426";
+		pinctrl-0 = <&ft5426int_reset_pins_a>;
+		reg = <0x38>;
+		irq-gpios = <&gpioi 1 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpioh 15 GPIO_ACTIVE_LOW>;
+		status = "okay";
+	};
+};
