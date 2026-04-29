@@ -6,6 +6,7 @@
  #include "stm32mp157-m4-srm-pinctrl.dtsi"
  #include <dt-bindings/gpio/gpio.h>
  #include <dt-bindings/mfd/st,stpmic1.h>
+ #include <dt-bindings/usb/pd.h>
  
 / {
     memory@c0000000 {
@@ -63,6 +64,21 @@
         regulator-always-on;
         regulator-boot-on;
     };
+
+    /*
+     * USB HS PHY 调参节点：这些参数来自正点原子官方板级设备树，
+     * 用于匹配开发板 USB 高速差分线的驱动电流、阻抗和接收阈值。
+     */
+    usb_phy_tuning: usb-phy-tuning {
+        st,hs-dc-level = <2>;
+        st,fs-rftime-tuning;
+        st,hs-rftime-reduction;
+        st,hs-current-trim = <15>;
+        st,hs-impedance-trim = <1>;
+        st,squelch-level = <3>;
+        st,hs-rx-offset = <2>;
+        st,no-lsfs-sc;
+    };
  
     v3v3: regulator-3p3v {
         compatible = "regulator-fixed";
@@ -71,6 +87,45 @@
         regulator-max-microvolt = <3300000>;
         regulator-always-on;
         regulator-boot-on;
+    };
+
+    /*
+     * USB PHY 供电节点：USBPHYC 的两个端口都引用此 3.3V 电源，
+     * 保证 Host 口和 OTG 口在内核初始化 PHY 时有明确供电来源。
+     */
+    vdd_usb: regulator-vdd-usb {
+        compatible = "regulator-fixed";
+        regulator-name = "vdd_usb";
+        regulator-min-microvolt = <3300000>;
+        regulator-max-microvolt = <3300000>;
+        regulator-always-on;
+        regulator-boot-on;
+    };
+
+    /*
+     * Type-C 控制器供电节点：STUSB1600 使用 5V VIN 作为芯片供电，
+     * 这里按官方设备树声明为固定常开电源。
+     */
+    vin: regulator-vin {
+        compatible = "regulator-fixed";
+        regulator-name = "vin";
+        regulator-min-microvolt = <5000000>;
+        regulator-max-microvolt = <5000000>;
+        regulator-always-on;
+        regulator-boot-on;
+    };
+};
+
+&pinctrl {
+    /*
+     * Type-C 中断引脚：PG2 连接 STUSB1600/FUSB302 的中断输出，
+     * 配置为 GPIO/模拟复用安全状态并开启上拉，避免空闲时悬空误触发。
+     */
+    stusb1600_pins_b: stusb1600-0 {
+        pins {
+            pinmux = <STM32_PINMUX('G', 2, ANALOG)>;
+            bias-pull-up;
+        };
     };
 };
  
@@ -120,6 +175,76 @@
     &ipcc {
         status = "okay";
     };
+
+&i2c1 {
+    /*
+     * I2C1 连接 USB Type-C 控制器，开启后内核可以读取插拔方向、
+     * 供电角色和数据角色，从而驱动 usbotg_hs 在 Host/Device 间切换。
+     */
+    pinctrl-names = "default", "sleep";
+    pinctrl-0 = <&i2c1_pins_b>;
+    pinctrl-1 = <&i2c1_pins_sleep_b>;
+    i2c-scl-rising-time-ns = <100>;
+    i2c-scl-falling-time-ns = <7>;
+    status = "okay";
+    /delete-property/dmas;
+    /delete-property/dma-names;
+
+    /*
+     * STUSB1600 Type-C 控制器：负责 USB-C 插拔检测和角色切换，
+     * connector 端点和 usbotg_hs 端点互连后，USB OTG 控制器才能感知角色。
+     */
+    stusb1600@28 {
+        compatible = "st,stusb1600";
+        reg = <0x28>;
+        interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
+        interrupt-parent = <&gpiog>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&stusb1600_pins_b>;
+        vdd-supply = <&vin>;
+        status = "okay";
+
+        connector {
+            compatible = "usb-c-connector";
+            label = "USB-C";
+            power-role = "dual";
+            power-opmode = "default";
+
+            port {
+                con_usbotg_hs_ep: endpoint {
+                    remote-endpoint = <&usbotg_hs_ep>;
+                };
+            };
+        };
+    };
+
+    /*
+     * FUSB302 Type-C/PD 控制器：正点原子官方设备树同样启用该节点，
+     * 用于需要 USB-C PD 协议协商的硬件版本；若板上未焊接则只会探测失败。
+     */
+    typec: fusb302@22 {
+        compatible = "fcs,fusb302", "fairchild,fusb302";
+        reg = <0x22>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&stusb1600_pins_b>;
+        int-n-gpios = <&gpiog 2 GPIO_ACTIVE_HIGH>;
+        vbus-5v-gpios = <&gpioz 6 GPIO_ACTIVE_HIGH>;
+        status = "okay";
+
+        connector {
+            compatible = "usb-c-connector";
+            label = "USB-C";
+            power-role = "dual";
+            power-opmode = "default";
+            try-power-role = "sink";
+            source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+            sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+                         PDO_VAR(3000, 12000, 3000)
+                         PDO_PPS_APDO(3000, 11000, 3000)>;
+            op-sink-microwatt = <10000000>;
+        };
+    };
+};
 
     &iwdg2 {
         timeout-sec = <32>;
@@ -176,3 +301,41 @@
     /delete-property/dma-names;
     status = "okay";
  };
+&usbh_ehci {
+    /*
+     * USB Host 控制器：连接 USBPHYC port0，UVC USB 摄像头插在普通 Host 口时，
+     * 由该控制器完成枚举并创建后续的 video 设备。
+     */
+    phys = <&usbphyc_port0>;
+    status = "okay";
+};
+
+&usbotg_hs {
+    /*
+     * USB OTG 控制器：连接 USBPHYC port1，并通过 Type-C connector 端点感知角色。
+     */
+    phys = <&usbphyc_port1 0>;
+    phy-names = "usb2-phy";
+    usb-role-switch;
+    status = "okay";
+
+    port {
+        usbotg_hs_ep: endpoint {
+            remote-endpoint = <&con_usbotg_hs_ep>;
+        };
+    };
+};
+
+&usbphyc {
+    status = "okay";
+};
+
+&usbphyc_port0 {
+    phy-supply = <&vdd_usb>;
+    st,phy-tuning = <&usb_phy_tuning>;
+};
+
+&usbphyc_port1 {
+    phy-supply = <&vdd_usb>;
+    st,phy-tuning = <&usb_phy_tuning>;
+};
