@@ -194,12 +194,15 @@
 	pinctrl-1 = <&i2c2_pins_sleep_a>;
 	status = "okay";
 
-	ft5426: ft5426@38 {
-		compatible = "edt,edt-ft5426";
-		pinctrl-0 = <&ft5426int_reset_pins_a>;
-		reg = <0x38>;
+	gt9147: gt9147@5d {
+		compatible = "atk-gt9147";
+		pinctrl-names = "default";
+		pinctrl-0 = <&gt9147int_reset_pins_a>;
+		reg = <0x5d>;
 		irq-gpios = <&gpioi 1 GPIO_ACTIVE_LOW>;
 		reset-gpios = <&gpioh 15 GPIO_ACTIVE_LOW>;
+		touchscreen-size-x = <1024>;
+		touchscreen-size-y = <600>;
 		status = "okay";
 	};
 };
