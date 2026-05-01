@@ -897,7 +897,13 @@
 
 	sdmmc1_cd_sleep_pins_a: sdmmc1-cd-sleep-0 {
 		pins {
-			pinmux = <STM32_PINMUX('D', 10, ANALOG)>; /* uSD_DETECT */
+			/*
+			 * SD 卡检测脚即使在 SDMMC1 进入 sleep/runtime suspend 时也必须保持 GPIO 输入。
+			 * 如果这里切到 ANALOG，拔卡后 PD10 会失去稳定上拉和边沿检测，
+			 * 内核可能继续保留旧的 /dev/mmcblk0p1，导致自动挂载脚本无法判断卡已拔出。
+			 */
+			pinmux = <STM32_PINMUX('D', 10, GPIO)>; /* uSD_DETECT */
+			bias-pull-up;
 		};
 	};
 
