@@ -261,10 +261,15 @@
 
  &sdmmc1 {
     pinctrl-names = "default", "opendrain", "sleep";
-    pinctrl-0 = <&sdmmc1_b4_pins_a>;
-    pinctrl-1 = <&sdmmc1_b4_od_pins_a>;
-    pinctrl-2 = <&sdmmc1_b4_sleep_pins_a>;
-    broken-cd;
+    pinctrl-0 = <&sdmmc1_b4_pins_a &sdmmc1_cd_pins_a>;
+    pinctrl-1 = <&sdmmc1_b4_od_pins_a &sdmmc1_cd_pins_a>;
+    pinctrl-2 = <&sdmmc1_b4_sleep_pins_a &sdmmc1_cd_sleep_pins_a>;
+    /*
+     * TF 卡检测脚：原理图 uSD_DETECT 接到 PD10，卡座检测脚通常在插卡后拉低。
+     * 使用 cd-gpios 代替 broken-cd 后，内核可以根据实际插拔状态创建或移除 mmcblk0。
+     */
+    cd-gpios = <&gpiod 10 GPIO_ACTIVE_LOW>;
+    cd-debounce-delay-ms = <200>;
     st,neg-edge;
     bus-width = <4>;
     vmmc-supply = <&v3v3>;

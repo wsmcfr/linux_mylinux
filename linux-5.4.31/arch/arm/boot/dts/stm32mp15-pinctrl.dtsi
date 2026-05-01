@@ -884,6 +884,23 @@
 		};
 	};
 
+	/*
+	 * TF 卡检测脚 pinctrl：uSD_DETECT 接到 PD10，作为普通 GPIO 输入交给 SDMMC1 的 cd-gpios 使用。
+	 * 这里启用内部上拉，避免卡未插入时检测脚悬空导致内核误判插卡状态。
+	 */
+	sdmmc1_cd_pins_a: sdmmc1-cd-0 {
+		pins {
+			pinmux = <STM32_PINMUX('D', 10, GPIO)>; /* uSD_DETECT */
+			bias-pull-up;
+		};
+	};
+
+	sdmmc1_cd_sleep_pins_a: sdmmc1-cd-sleep-0 {
+		pins {
+			pinmux = <STM32_PINMUX('D', 10, ANALOG)>; /* uSD_DETECT */
+		};
+	};
+
 	sdmmc1_dir_pins_a: sdmmc1-dir-0 {
 		pins1 {
 			pinmux = <STM32_PINMUX('F', 2, AF11)>, /* SDMMC1_D0DIR */
